@@ -1,0 +1,121 @@
+
+name: Deploy to Elastic Beanstalk
+
+on:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+jobs:
+  info:
+    # "Gather info" for is a separate job to ultimately capture the appropriate environment.
+    # Subsequent jobs can execute under the captured environment.
+    name: Gather info for jobs
+    timeout-minutes: 1
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.branch.outputs.branch }}
+      env_name: ${{ steps.environment.outputs.name }}
+    steps:
+      - name: Get branch name
+        run: |
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
+
+          # Output the captured branch for visibility in the workflow
+          echo "::group::Branch"
+          echo 'branch: '${branch}
+          echo "::endgroup::"
+        id: branch
+
+      - name: Get environment
+        run: |
+          env=dev
+          if [ "${{ steps.branch.outputs.name }}" = "main" ]
+          then
+            env=prod
+          fi
+          echo "name=${env}" >> $GITHUB_OUTPUT
+
+          # Output the captured environment for visibility in the workflow
+          echo "::group::Environment"
+          echo 'environment: '${env}
+          echo "::endgroup::"
+        id: environment
+
+  deploy:
+    needs: [info]
+    name: Deploy to ${{ needs.info.outputs.env_name == 'prod' && 'production' || 'develop'}}
+    # Stop the job if it is taking longer than 15 minutes.
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ needs.info.outputs.env_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        # Ensure the Java distribution used to build matches the one configured in EB
+        with:
+          distribution: 'corretto'
+          java-version: '17'
+
+      - name: Build deployment package
+        # Set the any hidden secret env vars under the appropriate environment
+        # In this Spring Java example, the Database values are set for the build
+        env:
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASS }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
+          SPRING_DATASOURCE_URL: ${{ secrets.DB_URL }}
+          SPRING_LIQUIBASE_URL: ${{ secrets.DB_URL }}
+        run: |
+          # Capture the resulting file name.
+          # In this example, the file name is built from two values in a `package.json` file.
+          # Maintain in a single location!
+          name=$(cat package.json | jq -r '.name')
+          version=$(cat package.json | jq -r '.version')
+          file_name=./build/libs/${name}-${version}.jar
+
+          # Build the app deployment package.
+          # In this example, it is a jar file.
+          # The actual build script and command may be different
+          ./build_app.sh -P${{ needs.info.outputs.env_name }} clean bootJar
+
+          echo "file=${file_name}" >> $GITHUB_OUTPUT
+
+          # Output the captured file name for visibility in the workflow
+          echo "::group::File"
+          echo 'file name: '${file_name}
+          echo "::endgroup::"
+        id: package
+
+      # OPTIONAL!
+      # Save the deployment package as a Github artifact.
+      # This may help with debugging as the deployment package can be downloaded from Github.
+      - name: Artifact Deploy Package
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: error
+          name: ${{ needs.info.outputs.env_name }} Deploy Package
+          # Relative path to the file
+          path: ${{ steps.package.outputs.file }}
+          # Artifact retention is 90 days by default
+          retention-days: 7
+
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          application_name: MyApp
+          aws_access_key: ${{ secrets.ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.SECRET_ACCESS_KEY }}
+          deployment_package: ${{ steps.package.outputs.file }}
+          # Set the `DEPLOY_ENV` and `S3_BUCKET` env vars under the appropriate environment
+          environment_name: ${{ vars.DEPLOY_ENV || 'MyApp-EB-Environment' }}
+          existing_bucket_name: ${{ vars.S3_BUCKET || 'MyApp-Deploy-Bucket-Name' }}
+          region: us-west-2
+          version_description: commit-sha-${{ github.sha }}
+          version_label: ver-${{ github.sha }}
