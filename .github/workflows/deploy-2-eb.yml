@@ -2,8 +2,9 @@
 name: Deploy to Elastic Beanstalk
 
 on:
-  push:
-    branches: [develop, main]
+  # Uncomment the next two lines to deploy when pushed to develop or main branches
+#   push:
+#     branches: [develop, main]
   workflow_dispatch:
 
 jobs:
