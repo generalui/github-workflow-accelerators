@@ -1,0 +1,78 @@
+name: Job Info
+
+description: Gather info for jobs
+
+outputs:
+  branch:
+    description: The target branch
+    value: ${{ steps.target_branch.outputs.branch }}
+  env_name:
+    description: The target environment
+    value: ${{ steps.environment.outputs.name }}
+  tag:
+    description: The triggering tag
+    value: ${{ steps.tag.outputs.name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get tag
+      run: |
+          trigger=${GITHUB_REF_TYPE}
+          tag=$([ ${trigger} == tag ] && echo "${GITHUB_REF_NAME}" || echo "none" )
+          echo "name=${tag}" >> $GITHUB_OUTPUT
+
+          echo "::group::tag"
+          echo 'tag: '${tag}
+          echo "::endgroup::"
+      shell: bash
+      id: tag
+
+    - name: Get target branch
+      run: |
+        # Get the target branch
+        branch="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+        if [[ ${{ github.event_name }} == 'pull_request' ]]; then
+          branch=${{ github.event.pull_request.base.ref }}
+        fi
+
+        if [[ $branch == refs/tags/* ]]; then
+          branch=$(echo "${{ steps.tag.outputs.name }}"| cut -d'|' -f 3)
+        fi
+        echo "branch=${branch}" >> $GITHUB_OUTPUT
+
+        echo "::group::Branch"
+        echo 'branch: '${branch}
+        echo "::endgroup::"
+      shell: bash
+      id: target_branch
+
+    # For info on Github Environments, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment
+    - name: Get environment
+      run: |
+        env=unknown
+        case ${{ steps.target_branch.outputs.branch }} in
+          develop)    read -r env <<< "dev";      ;;
+          main)       read -r env <<< "prod";     ;;
+          qa)         read -r env <<< "qa";       ;;
+          sandbox)    read -r env <<< "sandbox";  ;;
+          staging)    read -r env <<< "staging";  ;;
+          test)       read -r env <<< "test";     ;;
+        esac
+
+        case "${{ steps.tag.outputs.name }}" in
+          *-dev)                  read -r env <<< "dev";      ;;
+          *-qa)                   read -r env <<< "qa";       ;;
+          *-sandbox)              read -r env <<< "sandbox";  ;;
+          *-staging)              read -r env <<< "staging";  ;;
+          *-test)                 read -r env <<< "test";     ;;
+          [0-9]*\.[0-9]*\.[0-9]*) read -r env <<< "prod";     ;;
+        esac
+
+        echo "name=${env}" >> $GITHUB_OUTPUT
+
+        echo "::group::Environment"
+        echo 'environment: '${env}
+        echo "::endgroup::"
+      shell: bash
+      id: environment
