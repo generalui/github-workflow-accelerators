@@ -1,1 +1,6 @@
+# IDE
+*.code-workspace
+!gwa.code-workspace
+
+# Misc
 no_commit

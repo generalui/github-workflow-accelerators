@@ -1,0 +1,31 @@
+{
+    "version": "0.2",
+    "language": "en",
+    "words": [
+        "autogenerate",
+        "browserslist",
+        "datetime",
+        "dockerized",
+        "dnsfetch",
+        "genui",
+        "guid",
+        "guids",
+        "healthcheck",
+        "imei",
+        "jsonb",
+        "metacharacter",
+        "mkdir",
+        "queryable",
+        "referer",
+        "reactjs",
+        "repo",
+        "rssi",
+        "sakura",
+        "sqlfluff",
+        "unprocessable",
+        "upsert",
+        "varchar",
+        "zipcode"
+    ],
+    "flagWords": []
+}

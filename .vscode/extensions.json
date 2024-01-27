@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "bierner.markdown-preview-github-styles",
+        "DanielSanMedium.dscodegpt",
+        "DavidAnson.vscode-markdownlint",
+        "eamodio.gitlens",
+        "github.vscode-github-actions",
+        "shardulm94.trailing-spaces",
+        "streetsidesoftware.code-spell-checker"
+    ]
+}
