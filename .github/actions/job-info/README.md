@@ -59,4 +59,6 @@ For more information on GitHub Environments and their usage, refer to the offici
 
 Integrate this action into your workflows to enhance automation, ensure consistent environment tagging, and streamline branch management across your CI/CD processes.
 
+---
+
 Remember to replace `your-repo/job-info@v1` with the actual path to your action if you host it in a specific repository. This README provides a comprehensive guide on how to integrate and leverage the "Job Info" action in your GitHub workflows.
