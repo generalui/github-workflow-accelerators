@@ -4,7 +4,7 @@ This repo hold various accelerators for Github workflows (Actions) as well as re
 
 ## Workflows
 
-- [Deploy to Elastic Beanstalk](./.github/workflows/deploy-2-eb.yml)
+- [Deploy to Elastic Beanstalk](./.github/workflows/DEPLOY_2_EB.md)
 
 ## Actions
 
