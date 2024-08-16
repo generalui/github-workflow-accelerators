@@ -1,0 +1,58 @@
+name: Validate Terraform
+
+description: Validate terraform configuration
+
+inputs:
+  terraform-version:
+    default: latest
+    description: The version of Terraform to use (defaults to "latest")
+  paths:
+    default: ./
+    description: |-
+      Newline-separated list of paths to validate.
+      Paths must be of the format <folder>/ or <folder>/<folder>/.
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+
+    - name: Initialize
+      run: |
+        current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        # Set IFS to newline
+        IFS=$'\n'
+        paths="${{ inputs.paths }}"
+
+        # Iterate through the paths
+        for path in $paths; do
+          cd "$current_dir"/$path || exit
+          terraform init
+        done
+
+        cd $current_dir
+      shell: bash
+
+    - name: Validate
+      run: |
+        current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        # Set IFS to newline
+        IFS=$'\n'
+        paths="${{ inputs.paths }}"
+
+        # Iterate through the paths
+        for path in $paths; do
+          cd "$current_dir"/$path || exit
+          terraform validate
+        done
+
+        cd $current_dir
+      shell: bash
