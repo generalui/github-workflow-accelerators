@@ -1,0 +1,56 @@
+name: Lint & Test
+
+description: Lint & Test
+
+inputs:
+  node-version:
+    default: latest
+    description: The version of Nodejs to use (defaults to "latest")
+  yarn-version:
+    default: latest
+    description: The version of Yarn to use (defaults to "latest")
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node JS
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: |
+        echo "::group::Node Version"
+        echo 'Current node version: '$(node --version)
+        echo 'Node version requested: '${{ inputs.node-version }}
+        echo "::endgroup::"
+
+        version=$(yarn --version)
+        requested_version=${{ inputs.yarn-version }}
+
+        if [ version != requested_version ]; then
+          yarn set version ${requested_version}
+        fi
+
+        echo "::group::Yarn version"
+        echo 'initial yarn version: '${version}
+        echo 'yarn version requested: '${requested_version}
+        echo 'yarn version: '$(yarn --version)
+        echo "::endgroup::"
+
+        yarn install --immutable
+      shell: bash
+
+    - name: Lint project
+      run: yarn lint
+      shell: bash
+
+    - name: Run unit tests
+      run: yarn test --passWithNoTests
+      shell: bash

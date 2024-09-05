@@ -1,0 +1,184 @@
+name: Promote Image
+
+description: Promotes a Docker image from a lower environment (dev or staging) to a higher environment (staging or prod).
+
+inputs:
+  aws_access_key_id:
+    description: The AWS access key ID to use. If this is NOT provided, the action will NOT set up AWS credentials; it is assumed they are already set up.
+    required: false
+    default: ''
+  aws_account:
+    description: The AWS account ID to use.
+    required: true
+  aws_default_region:
+    description: The AWS region to use. If this is NOT provided, the action will NOT set up AWS credentials; it is assumed they are already set up.
+    required: false
+    default: ''
+  aws_secret_access_key:
+    description: The AWS secret access key to use. If this is NOT provided, the action will NOT set up AWS credentials; it is assumed they are already set up.
+    required: false
+    default: ''
+  ecr:
+    description: The ECR repository to use.
+    required: true
+  ecr_access_role_name:
+    description: The name of the role to assume to access the ECR repository.
+    required: true
+  ecr_tag_name:
+    description: The prefix of the tag to promote. (ie - the portion before the environment `{ecr_tag_name}-dev-latest`)
+    required: true
+  environment:
+    description: The environment to promote to. (prod or staging)
+    required: true
+  lower_aws_account:
+    description: The AWS account ID to use for the lower environment. If this is NOT provided, the action will assume the image is in the same ECR repository as the higher environment.
+    required: false
+    default: ''
+  lower_aws_default_region:
+    description: The AWS region to use for the lower environment. If this is NOT provided, the action will assume the image is in the same ECR repository as the higher environment.
+    required: false
+    default: ''
+  lower_ecr:
+    description: The ECR repository to use for the lower environment. If this is NOT provided, the action will assume the image is in the same ECR repository as the higher environment.
+    required: false
+    default: ''
+  lower_ecr_access_role_name:
+    description: The name of the role to assume to access the lower environment ECR repository. If this is NOT provided, the action will assume the image is in the same ECR repository as the higher environment.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Should configure AWS
+      run: |
+        configure=true
+        if [[ -z "${{ inputs.aws_access_key_id }}" || -z "${{ inputs.aws_secret_access_key }}" || -z "${{ inputs.aws_default_region }}" ]]; then
+          configure=false
+        fi
+        echo "configure=${configure}" >> $GITHUB_OUTPUT
+
+        echo "::group::Should Configure AWS Credentials"
+        echo 'configure: '${configure}
+        echo "::endgroup::"
+      shell: bash
+      id: should_configure_aws
+
+    - name: Configure AWS credentials
+      if: steps.should_configure_aws.outputs.configure == 'true'
+      uses: ohgod-ai/eo-actions/.github/actions/configure-aws@configure-aws-1.0.0
+      with:
+        aws_access_key_id: ${{ inputs.aws_access_key_id }}
+        aws_secret_access_key: ${{ inputs.aws_secret_access_key }}
+        aws_default_region: ${{ inputs.aws_default_region }}
+
+    - name: Get lower branch
+      run: |
+        lower_branch="dev"
+        if [[ "${{ inputs.environment }}" == "prod" ]]; then
+          lower_branch="staging"
+        fi
+        echo "lower_branch=${lower_branch}" >> $GITHUB_OUTPUT
+
+        echo "::group::Lower Branch"
+        echo 'branch: '${lower_branch}
+        echo "::endgroup::"
+      shell: bash
+      id: get_lower_branch
+
+    - name: Promote image
+      env:
+        AWS_ACCOUNT: ${{ inputs.aws_account }}
+        AWS_DEFAULT_REGION: ${{ inputs.aws_default_region }}
+        ECR: ${{ inputs.ecr }}
+        ECR_ACCESS_ROLE_NAME: ${{ inputs.ecr_access_role_name }}
+        ECR_TAG_NAME: ${{ inputs.ecr_tag_name }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        LOWER_AWS_ACCOUNT: ${{ inputs.lower_aws_account }}
+        LOWER_AWS_DEFAULT_REGION: ${{ inputs.lower_aws_default_region }}
+        LOWER_BRANCH: ${{ steps.get_lower_branch.outputs.lower_branch }}
+        LOWER_ECR: ${{ inputs.lower_ecr }}
+        LOWER_ECR_ACCESS_ROLE_NAME: ${{ inputs.lower_ecr_access_role_name }}
+      run: |
+        if [[ -n "${{ inputs.lower_aws_account }}" && -n "${{ inputs.lower_aws_default_region }}" ]]; then
+          echo "::group::Separate Account or Region?"
+          echo 'separate: true'
+          echo "::endgroup::"
+
+          if ! ${{github.action_path}}/scripts/promote_image.sh; then
+              echo >&2 -e "${red}Promote image failed.${nc}"
+              exit 1
+          fi
+        else
+          echo "::group::Separate Account or Region?"
+          echo 'separate: false'
+          echo "::endgroup::"
+
+          timestamp="$(date -u +"%Y%m%d%H%M%S")"
+          tag_prefix="${ECR_TAG_NAME}-${ENVIRONMENT}"
+          latest_tag="${tag_prefix}-latest"
+          unique_tag="${tag_prefix}-${timestamp}"
+          role_arn=arn:aws:iam::${AWS_ACCOUNT}:role/${ECR_ACCESS_ROLE_NAME}
+          lower_tag="${ECR_TAG_NAME}-${LOWER_BRANCH}-latest"
+
+          # Start clean
+          source ${{github.action_path}}/scripts/general/aws_unset.sh
+
+          source ${{github.action_path}}/scripts/general/assume_ecr_write_access_role.sh --roleArn "${role_arn}"
+
+          # Get all tags for the Docker image that are associated with the `lower_tag`
+          tags=$(aws ecr describe-images --repository-name "${ECR}" --query "imageDetails[?imageTags[?contains(@,\`${lower_tag}\`)]].imageTags")
+
+          if [ -z "$tags" ]; then
+            echo >&2 -e "${red}Getting tags failed.${nc}"
+            # Clean up
+            source "${script_path}/general/aws_unset.sh"
+            exit 1
+          fi
+
+          latest_tag_with_timestamp=$(echo "${tags}" | jq -r ".[] | map(select(. != \"${lower_tag}\")) | sort_by(split(\"-\")[-1] | tonumber) | reverse[0]")
+
+          if [ -z "$latest_tag_with_timestamp" ]; then
+            latest_tag_with_timestamp="${unique_tag}"
+          fi
+
+          echo "::group::Tags"
+          echo "New tags: ${latest_tag} and ${latest_tag_with_timestamp}"
+          echo 'Lower Tag: '${lower_tag}
+          echo "::endgroup::"
+
+          manifest=$(aws ecr batch-get-image --repository-name "${ECR}" --image-ids imageTag=${lower_tag} --output json | jq --raw-output '.images[].imageManifest')
+
+          if [ -z "$manifest" ]; then
+              echo >&2 -e "${red}Getting manifest failed.${nc}"
+              # Clean up
+              source ${{github.action_path}}/scripts/general/aws_unset.sh
+              exit 1
+          fi
+
+          unique_response=$(aws ecr put-image --repository-name "${ECR}" --image-tag "${latest_tag_with_timestamp}" --image-manifest "$manifest")
+
+          if [ -z "$unique_response" ]; then
+            echo >&2 -e "${red}Update tag ${latest_tag_with_timestamp} failed.${nc}"
+            # Clean up
+            source ${{github.action_path}}/scripts/general/aws_unset.sh
+            exit 1
+          fi
+
+          echo "Unique response: ${unique_response}"
+
+          new_response=$(aws ecr put-image --repository-name "${ECR}" --image-tag "${latest_tag}" --image-manifest "$manifest")
+
+          if [ -z "$new_response" ]; then
+            echo >&2 -e "${red}Update tag ${latest_tag} failed.${nc}"
+            # Clean up
+            source ${{github.action_path}}/scripts/general/aws_unset.sh
+            exit 1
+          fi
+
+          # Clean up
+          source ${{github.action_path}}/scripts/general/aws_unset.sh
+
+          echo "New response: ${new_response}"
+        fi
+      shell: bash

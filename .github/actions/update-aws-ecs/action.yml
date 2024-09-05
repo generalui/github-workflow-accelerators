@@ -1,0 +1,59 @@
+name: Update ECS
+
+description: Update an ECS service
+
+inputs:
+  aws_access_key_id:
+    description: The AWS access key ID to use. If this is NOT provided, the action will NOT set up AWS credentials; it is assumed they are already set up.
+    required: false
+    default: ''
+  aws_secret_access_key:
+    description: The AWS secret access key to use. If this is NOT provided, the action will NOT set up AWS credentials; it is assumed they are already set up.
+    required: false
+    default: ''
+  aws_default_region:
+    description: The AWS region to use. If this is NOT provided, the action will NOT set up AWS credentials; it is assumed they are already set up.
+    required: false
+    default: ''
+  assume_ecs_access_role_arn:
+    description: The ARN of the role to assume to access the ECS cluster.
+    required: true
+  cluster:
+    description: The name of the ECS cluster of the ECS service to update.
+    required: true
+  service:
+    description: The name of the ECS service to update.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Should configure AWS
+      run: |
+        configure=true
+        if [[ -z "${{ inputs.aws_access_key_id }}" || -z "${{ inputs.aws_secret_access_key }}" || -z "${{ inputs.aws_default_region }}" ]]; then
+          configure=false
+        fi
+        echo "configure=${configure}" >> $GITHUB_OUTPUT
+
+        echo "::group::Should Configure AWS Credentials"
+        echo 'configure: '${configure}
+        echo "::endgroup::"
+      shell: bash
+      id: should_configure_aws
+
+    - name: Configure AWS credentials
+      if: steps.should_configure_aws.outputs.configure == 'true'
+      uses: ohgod-ai/eo-actions/.github/actions/configure-aws@configure-aws-1.0.0
+      with:
+        aws_access_key_id: ${{ inputs.aws_access_key_id }}
+        aws_secret_access_key: ${{ inputs.aws_secret_access_key }}
+        aws_default_region: ${{ inputs.aws_default_region }}
+
+    - name: Update ECS
+      env:
+        ASSUME_ECS_ACCESS_ROLE_ARN: ${{ inputs.assume_ecs_access_role_arn }}
+        CLUSTER_NAME: ${{ inputs.cluster }}
+        SERVICE_NAME: ${{ inputs.service }}
+      run: ${{github.action_path}}/scripts/update_ecs.sh
+      shell: bash
