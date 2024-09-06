@@ -1,10 +1,13 @@
 # Deploy to Elastic Beanstalk Action
 
-The "Deploy to Elastic Beanstalk" GitHub Action automates the deployment of applications to AWS Elastic Beanstalk directly from your GitHub repository, ensuring a seamless CI/CD pipeline for your cloud-based applications.
+The "Deploy to Elastic Beanstalk" GitHub Action automates the deployment of applications to AWS Elastic Beanstalk
+directly from your GitHub repository, ensuring a seamless CI/CD pipeline for your cloud-based applications.
 
 ## Description
 
-This action is triggered on pushes to the `develop` and `main` branches or can be manually triggered using `workflow_dispatch`. It consists of two main jobs: gathering job information and deploying to AWS Elastic Beanstalk. The deployment process includes building a deployment package (e.g., a JAR file for a Spring Java application) and deploying it to the specified Elastic Beanstalk environment.
+This action is triggered on pushes to the `develop` and `main` branches or can be manually triggered using `workflow_dispatch`.
+It consists of two main jobs: gathering job information and deploying to AWS Elastic Beanstalk.
+The deployment process includes building a deployment package (e.g., a JAR file for a Spring Java application) and deploying it to the specified Elastic Beanstalk environment.
 
 ## Workflow
 
@@ -20,7 +23,8 @@ This action is triggered on pushes to the `develop` and `main` branches or can b
 
 1) Gather info for jobs (`info`):
     - Gathers essential information for subsequent jobs, like the environment name.
-    - Uses the [job-info](https://github.com/generalui/github-workflow-accelerators/tree/1.0.0-job-info/.github/actions/job-info) action to determine the target environment based on the branch or tag that triggered the workflow.
+    - Uses the [job-info](https://github.com/generalui/github-workflow-accelerators/tree/1.0.0-job-info/.github/actions/job-info) action
+    to determine the target environment based on the branch or tag that triggered the workflow.
 
 1) Deploy to Elastic Beanstalk (`deploy`):
     - Depends on the `info` job.
@@ -68,4 +72,5 @@ To use this workflow:
 
 ---
 
-Remember to replace `your-repo/deploy-to-elastic-beanstalk@v1` with the actual path to your action if you host it in a specific repository. This README provides a comprehensive guide on how to integrate and leverage the "Deploy to Elastic Beanstalk" action in your GitHub workflows.
+Remember to replace `your-repo/deploy-to-elastic-beanstalk@v1` with the actual path to your action if you host it in a specific repository.
+This README provides a comprehensive guide on how to integrate and leverage the "Deploy to Elastic Beanstalk" action in your GitHub workflows.
