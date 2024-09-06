@@ -1,0 +1,39 @@
+name: Configure AWS
+
+description: Configure AWS credentials for the GitHub Actions runner.
+
+inputs:
+  aws_access_key_id:
+    description: The AWS access key ID to use.
+    required: true
+  aws_secret_access_key:
+    description: The AWS secret access key to use.
+    required: true
+  aws_default_region:
+    description: The AWS region to use.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials
+      run: |
+        aws configure set aws_access_key_id ${{ inputs.aws_access_key_id }} --profile default
+        aws configure set aws_secret_access_key ${{ inputs.aws_secret_access_key }} --profile default
+        aws configure set region ${{ inputs.aws_default_region }} --profile default
+      shell: bash
+
+    - name: Cleanup - Remove AWS Access Key Id
+      uses: webiny/action-post-run@3.1.0
+      with:
+        run: aws configure set aws_access_key_id "XXX" --profile default;
+
+    - name: Cleanup - Remove AWS Secret Access Key
+      uses: webiny/action-post-run@3.1.0
+      with:
+        run: aws configure set aws_secret_access_key "XXX" --profile default;
+
+    - name: Cleanup - Remove AWS Region
+      uses: webiny/action-post-run@3.1.0
+      with:
+        run: aws configure set region "XXX" --profile default;

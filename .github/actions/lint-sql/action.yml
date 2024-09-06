@@ -1,0 +1,55 @@
+name: Lint SQL
+
+description: Lint all SQL files
+
+inputs:
+  config:
+    description: |
+      Include additional config file.
+      By default the config is generated from the standard configuration files described in the documentation.
+      This argument allows you to specify an additional configuration file that overrides the standard configuration files.
+      N.B. cfg format is required.
+    required: false
+    default: ''
+  path:
+    description: |
+      The path to a sql file or directory to lint.
+      This can be either a file ('path/to/file.sql'), a path ('directory/of/sql/files'), a single ('-') character to indicate reading from *stdin* or a dot/blank ('.'/' ') which will be interpreted like passing the current working directory as a path argument.
+    required: true
+  python-version:
+    default: latest
+    description: The version of Python to use (defaults to "latest")
+  sqlfluff-version:
+    default: ''
+    description: The version of SQLFluff to use (defaults to the latest version)
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install SQLFluff
+      run: |
+        version=${{ inputs.sqlfluff-version }}
+        if [[ ${version} != '' ]]; then
+          version="==${version}"
+        fi
+        pip install sqlfluff${version}
+      shell: bash
+
+    - name: Lint
+      run: |
+        config=${{ inputs.config }}
+        if [[ ${config} != '' ]]; then
+          config="--config ${config} "
+        fi
+        sqlfluff lint ${{ inputs.config }}${{ inputs.path }}
+      shell: bash

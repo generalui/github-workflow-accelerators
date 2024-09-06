@@ -1,0 +1,172 @@
+name: Github Action - Create Releases
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate_release:
+    name: Validate releases
+    # Validating releases should not take more that 1 minute.
+    timeout-minutes: 1
+    runs-on: ubuntu-latest
+    outputs:
+      version_tags: ${{ steps.version.outputs.version_tags }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          files_ignore: |
+            .github/workflows/github-action-create-release.yml
+            .github/workflows/github-action-code-quality.yml
+            .github/**/*.md
+            .vscode/**/*
+            .gitignore
+            .markdownlint*
+            *.code-workspace
+            *.md
+
+      - name: Get changed Action and Workflow paths
+        if: steps.changed-files.outputs.any_changed == 'true'
+        id: module_paths
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          module_paths=()
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "${file} was changed"
+            module_path=$(echo ${file} | awk -F/ -vOFS=/ '{print $1,$2,$3}')
+            if [[ ! "${module_paths[@]}" =~ "${module_path}" ]]; then
+              module_paths+=("${module_path}")
+            fi
+          done
+          module_paths_json=$(jq -c -n '$ARGS.positional' --args "${module_paths[@]}")
+          echo "module_names=${module_paths_json}" >> $GITHUB_OUTPUT
+
+          echo "::group::Module Paths"
+          echo "Module Paths:"
+          echo "${module_paths[*]}"
+          echo "::endgroup::"
+
+          echo "::group::Module Paths (JASON)"
+          echo "Module Paths: ${module_paths_json}"
+          echo "::endgroup::"
+
+      - name: Version and Release Setup
+        if: steps.changed-files.outputs.any_changed == 'true'
+        id: version
+        run: |
+          module_paths=($(jq -r '.[]' <<<'${{ steps.module_paths.outputs.module_names }}'))
+
+          version_tags=""
+          for module_path in "${module_paths[@]}"; do
+            version=$(cat "${module_path}"/project.json | jq -r '.version')
+            module=$(echo ${module_path} | cut -d'/' -f3)
+            version_tags="${version_tags},\"${module}:${version}\""
+          done
+
+          # Remove the first comma
+          version_tags="${version_tags:1}"
+          echo "version_tags=[${version_tags}]" >> $GITHUB_OUTPUT
+
+          echo "::group::Version Tags"
+          echo "Version Tags: [${version_tags}]"
+          echo "::endgroup::"
+        shell: bash
+
+      - name: Check for Tags
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          tags=($(jq -r '.[]' <<<'${{ steps.version.outputs.version_tags }}'))
+
+          for tag in "${tags[@]}"; do
+            if git show-ref --tags --verify --quiet "refs/tags/${tag}"; then
+                echo "The tag ${tag} already exists, ensure you have incremented the version in project.json."
+                exit 1
+            fi
+          done
+          echo "Proceeding."
+        shell: bash
+
+  release:
+    name: Create releases
+    # Creating releases should not take more that 1 minute.
+    timeout-minutes: 1
+    needs: [ validate_release ]
+    if: ${{ needs.validate_release.outputs.version_tags != '[]' && needs.validate_release.outputs.version_tags != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version_tag: ${{ fromJSON(needs.validate_release.outputs.version_tags) }}
+    steps:
+      - name: Get job info
+        uses: generalui/github-workflow-accelerators/.github/actions/job-info@1.0.0-job-info
+        id: info
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.info.outputs.branch }}
+
+      - name: Get previous tag, push new tag
+        id: tags
+        run: |
+          # Extract the module name from the version tag
+          module_name=$(echo "${{ matrix.version_tag }}" | cut -d':' -f2)
+          # Extract the module version from the version tag
+          version=$(echo "${{ matrix.version_tag }}" | cut -d':' -f1)
+          version_tag="${version}-${module_name}"
+
+          git checkout ${{ steps.info.outputs.branch }}
+          git tag "${version_tag}"
+          git push origin tag "${version_tag}"
+          # Get all tags sorted by version, filtered by the module name
+          previous_tag=$(git tag --sort=-v:refname | grep -E "^[0-9]+\.[0-9]+\.[0-9]+-${module_name}$" | sed -n '2p')
+
+          echo "previous_tag=${previous_tag}" >> $GITHUB_OUTPUT
+          echo "new_tag=${version_tag}" >> $GITHUB_OUTPUT
+
+          echo "::group::Previous Tag"
+          echo "Previous Tag: ${previous_tag}"
+          echo "::endgroup::"
+
+          echo "::group::New Tag"
+          echo "New Tag: ${version_tag}"
+          echo "::endgroup::"
+        shell: bash
+
+      - name: Create/Update CHANGELOG
+        id: changelog
+        if: ${{ steps.tags.outputs.previous_tag != '' }}
+        uses: requarks/changelog-action@v1
+        with:
+          excludeTypes: ""
+          fromTag: ${{ steps.tags.outputs.previous_tag != '' && steps.tags.outputs.new_tag || '' }}
+          includeInvalidCommits: true
+          tag: ${{ steps.tags.outputs.previous_tag == '' && steps.tags.outputs.new_tag || '' }}
+          toTag: ${{ steps.tags.outputs.previous_tag != '' && steps.tags.outputs.previous_tag || '' }}
+          token: ${{ github.token }}
+          writeToFile: false
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          body: ${{ steps.changelog.outputs.changes }}
+          makeLatest: false
+          name: "Version ${{ steps.tags.outputs.new_tag }}"
+          prerelease: false
+          skipIfReleaseExists: true
+          tag: ${{ steps.tags.outputs.new_tag }}
+
+      - name: Clean up on failure
+        if: ${{ failure() && steps.tags.outputs.new_tag }}
+        run: |
+          git push --delete origin "${{ steps.tags.outputs.new_tag }}"
+        shell: bash

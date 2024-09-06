@@ -1,0 +1,25 @@
+name: Lint Terraform
+
+description: Lint all terraform files
+
+inputs:
+  terraform-version:
+    default: latest
+    description: The version of Terraform to use (defaults to "latest")
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+
+    - name: Lint project
+      run: terraform fmt -check -recursive -diff
+      shell: bash

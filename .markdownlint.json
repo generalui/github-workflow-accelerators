@@ -1,0 +1,13 @@
+{
+    "default": true,
+    "line-length": {
+        "line_length": 180
+    },
+    "no-inline-html": {
+        "allowed_elements": [
+            "a",
+            "img",
+            "p"
+        ]
+    }
+}

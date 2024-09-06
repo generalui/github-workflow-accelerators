@@ -1,0 +1,136 @@
+name: Test Python
+
+description: Test the Python project
+
+inputs:
+  branch:
+    description: The branch that is being tested
+    required: true
+  checkout-code:
+    default: 'yes'
+    description: Whether or not to checkout the code.
+  global-index-url:
+    default: ''
+    description: The base URL of the Python Package Index (default https://pypi.org/simple). This should point to a repository compliant with PEP 503 (the simple repository API) or a local directory laid out in the same format. If none is passed, the index URL will not be updated.
+  global-trusted-host:
+    default: ''
+    description: The host of the global trusted host to use for PIP. This will mark this host or host:port pair as trusted, even though it does not have valid or any HTTPS. If none is passed, the trusted host will not be updated.
+  python-version:
+    default: 3.11.7
+    description: The version of Python to use (defaults to 3.11.7)
+  retention-days:
+    default: 31
+    description: The number of days to keep artifacts (defaults to 31)
+  run-before-tests:
+    default: ''
+    description: A shell command to run before tests.
+  search-index:
+    default: ''
+    description: The search index to use for PIP. Base URL of Python Package Index (default https://pypi.org/pypi). If none is passed, the search index will not be updated.
+  should-run-tests:
+    default: 'yes'
+    description: Whether or not to run tests (defaults to "yes"). Anything other than "yes" will skip tests.
+  tox-version:
+    default: ''
+    description: The version of Tox to use. If no version is passed, Tox will not be used.
+  upload-coverage:
+    default: 'yes'
+    description: Whether or not to upload coverage as an artifact (defaults to "yes"). Anything other than "yes" will skip uploading.
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      if: inputs.should-run-tests == 'yes'
+      # This is the version of the action for setting up Python, not the Python version.
+      uses: actions/setup-python@v5
+      with:
+        # Semantic version range syntax or exact version of a Python version
+        python-version: ${{ inputs.python-version }}
+        cache: 'pip'
+        cache-dependency-path: |
+          setup.cfg
+          setup.py
+          requirements-dev.txt
+          requirements-test.txt
+
+    - name: Checkout code
+      if: inputs.should-run-tests == 'yes' && inputs.checkout-code == 'yes'
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Configure & Update pip
+      if: inputs.should-run-tests == 'yes'
+      env:
+        GLOBAL_INDEX_URL: ${{ inputs.global-index-url }}
+        GLOBAL_TRUSTED_HOST: ${{ inputs.global-trusted-host }}
+        SEARCH_URL: ${{ inputs.search-index }}
+      run: |
+        bash ${{github.action_path}}/scripts/configure_pip.sh
+        pip install --upgrade pip
+      shell: bash
+
+    - name: Install Dependencies
+      if: inputs.should-run-tests == 'yes'
+      run: |
+        if [ -n "${{ inputs.tox-version }}" ]; then
+          pip install tox==${{ inputs.tox-version }}
+        else
+          test_requirements_file="requirements-test.txt"
+          if [ ! -f "${test_requirements_file}" ]; then
+            test_requirements_file="requirements-dev.txt"
+          fi
+          if [ -f "${test_requirements_file}" ]; then
+            pip install -r ${test_requirements_file} .
+          fi
+        fi
+      shell: bash
+
+    - name: Run Before Tests
+      if: inputs.should-run-tests == 'yes' && inputs.run-before-tests != ''
+      run: |
+        bash -c "${{ inputs.run-before-tests }}"
+      shell: bash
+
+    - name: Test
+      if: inputs.should-run-tests == 'yes'
+      run: |
+        if [ -n "${{ inputs.tox-version }}" ]; then
+          major_minor=$(echo "${{ inputs.python-version }}" | sed -E 's/([0-9]+)\.([0-9]+).*/\1\2/')
+          # Run test coverage using as many cores as are available.
+          tox run -e coverage-py${major_minor}
+        else
+          pytest --cov --cov-report html -n auto
+        fi
+      shell: bash
+
+    - name: Get the coverage file.
+      if: inputs.should-run-tests == 'yes' && inputs.upload-coverage == 'yes'
+      run: |
+          coverage_branch=${${{ inputs.branch }}//+([\"\:<>|\*\?\\\/])/-}
+          coverage_dir=coverage-${coverage_branch}
+          mkdir -p ${coverage_dir} && sudo cp -r coverage ${coverage_dir}
+
+          echo "coverage_branch=${coverage_branch}" >> $GITHUB_OUTPUT
+          echo "coverage_dir=${coverage_dir}" >> $GITHUB_OUTPUT
+
+          echo "::group::Coverage Data"
+          echo 'branch: '${coverage_branch}
+          echo 'dir: '${coverage_dir}
+          echo "::endgroup::"
+      shell: bash
+      id: coverage
+
+    - name: Upload the Coverage as an artifact
+      if: inputs.should-run-tests == 'yes' && inputs.upload-coverage == 'yes'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.coverage.outputs.coverage_branch }}-test-coverage
+        path: ${{ steps.coverage.outputs.coverage_dir }}
+        retention-days: ${{ inputs.retention-days }}
+
+    - name: Default Job Success
+      if: inputs.should-run-tests != 'yes'
+      run: exit 0
+      shell: bash

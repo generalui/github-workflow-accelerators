@@ -2,6 +2,11 @@ name: Job Info
 
 description: Gather info for jobs
 
+inputs:
+  default_environment:
+    default: ''
+    description: The default environment to use if none is found (defaults to an empty string)
+
 outputs:
   branch:
     description: The target branch
@@ -9,9 +14,12 @@ outputs:
   env_name:
     description: The target environment
     value: ${{ steps.environment.outputs.name }}
+  pr_branch:
+    description: The branch a PR was initiated from
+    value: ${{ steps.pr_branch.outputs.pr_branch }}
   tag:
-    description: The triggering tag
-    value: ${{ steps.tag.outputs.name }}
+    description: The target branch
+    value: ${{ steps.tag.outputs.tag }}
 
 runs:
   using: composite
@@ -20,9 +28,9 @@ runs:
       run: |
           trigger=${GITHUB_REF_TYPE}
           tag=$([ ${trigger} == tag ] && echo "${GITHUB_REF_NAME}" || echo "none" )
-          echo "name=${tag}" >> $GITHUB_OUTPUT
+          echo "tag=${tag}" >> $GITHUB_OUTPUT
 
-          echo "::group::tag"
+          echo "::group::Tag"
           echo 'tag: '${tag}
           echo "::endgroup::"
       shell: bash
@@ -37,21 +45,39 @@ runs:
         fi
 
         if [[ $branch == refs/tags/* ]]; then
-          branch=$(echo "${{ steps.tag.outputs.name }}"| cut -d'|' -f 3)
+          branch=$(echo "${{ steps.tag.outputs.tag }}"| cut -d'|' -f 3)
         fi
         echo "branch=${branch}" >> $GITHUB_OUTPUT
 
-        echo "::group::Branch"
+        echo "::group::Target Branch"
         echo 'branch: '${branch}
         echo "::endgroup::"
       shell: bash
       id: target_branch
 
+    - name: Get PR branch
+      run: |
+        pr_branch=""
+        if [[ ${{ github.event_name }} == 'pull_request' ]]; then
+          pr_branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+        fi
+
+        echo "pr_branch="${pr_branch} >> $GITHUB_OUTPUT
+
+        echo "::group::PR Branch"
+        echo 'PR branch: '${pr_branch}
+        echo "::endgroup::"
+      shell: bash
+      id: pr_branch
+
     # For info on Github Environments, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment
     - name: Get environment
       run: |
-        env=unknown
-        case ${{ steps.target_branch.outputs.branch }} in
+        # See https://askubuntu.com/a/889746
+        shopt -s extglob
+
+        env=${{ inputs.default_environment }}
+        case "${{ steps.target_branch.outputs.branch }}" in
           develop)    read -r env <<< "dev";      ;;
           main)       read -r env <<< "prod";     ;;
           qa)         read -r env <<< "qa";       ;;
@@ -60,13 +86,13 @@ runs:
           test)       read -r env <<< "test";     ;;
         esac
 
-        case "${{ steps.tag.outputs.name }}" in
-          *-dev)                  read -r env <<< "dev";      ;;
-          *-qa)                   read -r env <<< "qa";       ;;
-          *-sandbox)              read -r env <<< "sandbox";  ;;
-          *-staging)              read -r env <<< "staging";  ;;
-          *-test)                 read -r env <<< "test";     ;;
-          [0-9]*\.[0-9]*\.[0-9]*) read -r env <<< "prod";     ;;
+        case "${{ steps.tag.outputs.tag }}" in
+          *-dev)                                              read -r env <<< "dev";      ;;
+          *-qa)                                               read -r env <<< "qa";       ;;
+          *-sandbox)                                          read -r env <<< "sandbox";  ;;
+          *-staging)                                          read -r env <<< "staging";  ;;
+          *-test)                                             read -r env <<< "test";     ;;
+          +([0-9]).+([0-9]).+([0-9])?(-|+)*([0-9A-Za-z+-.]))  read -r env <<< "prod";     ;;
         esac
 
         echo "name=${env}" >> $GITHUB_OUTPUT

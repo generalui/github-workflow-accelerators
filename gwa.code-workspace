@@ -5,6 +5,12 @@
         }
     ],
     "settings": {
+        // Cody AI
+        "cody.codebase": "git@github.com:generalui/github-workflow-accelerators.git",
+        "cody.autocomplete.languages": {
+            "bash": true,
+            "markdown": true
+        },
         "editor.formatOnSave": true,
         "editor.wordWrap": "on",
         "files.eol": "\n",
