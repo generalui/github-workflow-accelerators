@@ -29,7 +29,7 @@ To use the "Validate Terraform" action in your workflow, include it as a step:
 
 ```yaml
 - name: Validate Terraform Configurations
-  uses: generalui/terraform-accelerator/.github/actions/validate-terraform@validate-terraform-1.0.0
+  uses: generalui/terraform-accelerator/.github/actions/validate-terraform@1.0.0-validate-terraform
   with:
     terraform-version: '1.7.2' # Optional: Specify Terraform version
     paths: | # Optional: Specify multiple paths

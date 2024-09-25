@@ -28,7 +28,7 @@ To use the "Lint & Test" action in your workflow, include it as a step:
 
 ```yaml
 - name: Lint and Test
-  uses: ohgod-ai/eo-actions/.github/actions/lint-and-test@lint-and-test-1.0.0
+  uses: generalui/github-workflow-accelerators/.github/actions/lint-and-test@1.0.0-lint-and-test
   with:
     node-version: '14' # Optional: Specify Node.js version
     yarn-version: '1.22' # Optional: Specify Yarn version

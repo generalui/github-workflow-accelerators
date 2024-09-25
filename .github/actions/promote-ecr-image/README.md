@@ -54,7 +54,7 @@ To use the "Promote Image" action in your workflow:
 
 ```yaml
 - name: Promote to Production
-  uses: ohgod-ai/eo-actions/.github/actions/promote-image@promote-image-1.0.0
+  uses: generalui/github-workflow-accelerators/.github/actions/promote-image@1.0.0-promote-image
   with:
     aws_account: ${{ secrets.AWS_ACCOUNT_ID }}
     ecr: my-ecr-repo

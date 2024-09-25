@@ -65,10 +65,12 @@ jobs:
           module_paths=($(jq -r '.[]' <<<'${{ steps.module_paths.outputs.module_names }}'))
 
           version_tags=""
+          version_tags_check=""
           for module_path in "${module_paths[@]}"; do
-            version=$(cat "${module_path}"/project.json | jq -r '.version')
+            version=$(cat "${module_path}"/${module}.json | jq -r '.version')
             module=$(echo ${module_path} | cut -d'/' -f3)
-            version_tags="${version_tags},\"${module}:${version}\""
+            version_tags="${version_tags},\"${version}:${module}\""
+            version_tags_check="${version_tags},\"${version}-${module}\""
           done
 
           # Remove the first comma
@@ -78,12 +80,20 @@ jobs:
           echo "::group::Version Tags"
           echo "Version Tags: [${version_tags}]"
           echo "::endgroup::"
+
+          # Remove the first comma
+          version_tags_check="${version_tags_check:1}"
+          echo "version_tags_check=[${version_tags_check}]" >> $GITHUB_OUTPUT
+
+          echo "::group::Check Version Tags"
+          echo "Version Tags to Check: [${version_tags_check}]"
+          echo "::endgroup::"
         shell: bash
 
       - name: Check for Tags
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          tags=($(jq -r '.[]' <<<'${{ steps.version.outputs.version_tags }}'))
+          tags=($(jq -r '.[]' <<<'${{ steps.version.outputs.version_tags_check }}'))
 
           for tag in "${tags[@]}"; do
             if git show-ref --tags --verify --quiet "refs/tags/${tag}"; then
@@ -116,7 +126,7 @@ jobs:
           ref: ${{ steps.info.outputs.branch }}
 
       - name: Get previous tag, push new tag
-        id: tags
+        id: image_tags
         run: |
           # Extract the module name from the version tag
           module_name=$(echo "${{ matrix.version_tag }}" | cut -d':' -f2)
@@ -124,34 +134,35 @@ jobs:
           version=$(echo "${{ matrix.version_tag }}" | cut -d':' -f1)
           version_tag="${version}-${module_name}"
 
+          echo "new_tag=${version_tag}" >> $GITHUB_OUTPUT
+
+          echo "::group::New Tag"
+          echo "New Tag: ${version_tag}"
+          echo "::endgroup::"
+
           git checkout ${{ steps.info.outputs.branch }}
           git tag "${version_tag}"
           git push origin tag "${version_tag}"
+
           # Get all tags sorted by version, filtered by the module name
           previous_tag=$(git tag --sort=-v:refname | grep -E "^[0-9]+\.[0-9]+\.[0-9]+-${module_name}$" | sed -n '2p')
 
           echo "previous_tag=${previous_tag}" >> $GITHUB_OUTPUT
-          echo "new_tag=${version_tag}" >> $GITHUB_OUTPUT
 
           echo "::group::Previous Tag"
           echo "Previous Tag: ${previous_tag}"
-          echo "::endgroup::"
-
-          echo "::group::New Tag"
-          echo "New Tag: ${version_tag}"
           echo "::endgroup::"
         shell: bash
 
       - name: Create/Update CHANGELOG
         id: changelog
-        if: ${{ steps.tags.outputs.previous_tag != '' }}
         uses: requarks/changelog-action@v1
         with:
           excludeTypes: ""
-          fromTag: ${{ steps.tags.outputs.previous_tag != '' && steps.tags.outputs.new_tag || '' }}
+          fromTag: ${{ steps.image_tags.outputs.previous_tag != '' && steps.image_tags.outputs.new_tag || '' }}
           includeInvalidCommits: true
-          tag: ${{ steps.tags.outputs.previous_tag == '' && steps.tags.outputs.new_tag || '' }}
-          toTag: ${{ steps.tags.outputs.previous_tag != '' && steps.tags.outputs.previous_tag || '' }}
+          tag: ${{ steps.image_tags.outputs.previous_tag == '' && steps.image_tags.outputs.new_tag || '' }}
+          toTag: ${{ steps.image_tags.outputs.previous_tag != '' && steps.image_tags.outputs.previous_tag || '' }}
           token: ${{ github.token }}
           writeToFile: false
 
@@ -160,13 +171,13 @@ jobs:
         with:
           body: ${{ steps.changelog.outputs.changes }}
           makeLatest: false
-          name: "Version ${{ steps.tags.outputs.new_tag }}"
+          name: "Version ${{ steps.image_tags.outputs.new_tag }}"
           prerelease: false
           skipIfReleaseExists: true
-          tag: ${{ steps.tags.outputs.new_tag }}
+          tag: ${{ steps.image_tags.outputs.new_tag }}
 
       - name: Clean up on failure
-        if: ${{ failure() && steps.tags.outputs.new_tag }}
+        if: ${{ failure() && steps.image_tags.outputs.new_tag }}
         run: |
-          git push --delete origin "${{ steps.tags.outputs.new_tag }}"
+          git push --delete origin "${{ steps.image_tags.outputs.new_tag }}"
         shell: bash
