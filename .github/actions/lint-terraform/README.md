@@ -22,7 +22,7 @@ To use the "Lint Terraform" action in your workflow, include it as a step:
 
 ```yaml
 - name: Lint Terraform Files
-  uses: ohgod-ai/eo-actions/.github/actions/lint-terraform@lint-terraform-1.0.0
+  uses: generalui/github-workflow-accelerators/.github/actions/lint-terraform@1.0.0-lint-terraform
   with:
     terraform-version: '1.0.0' # Optional: Specify Terraform version
 ```

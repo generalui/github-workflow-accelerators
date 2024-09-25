@@ -46,7 +46,7 @@ To use the "Lint SQL" action in your workflow, include it as a step:
 
 ```yaml
 - name: Lint SQL Files
-  uses: ohgod-ai/eo-actions/.github/actions/lint-sql@lint-sql-1.0.0
+  uses: generalui/github-workflow-accelerators/.github/actions/lint-sql@1.0.0-lint-sql
   with:
     config: 'path/to/config.cfg' # Optional: Path to additional config
     path: 'path/to/sql/files' # Required: Path to SQL file or directory

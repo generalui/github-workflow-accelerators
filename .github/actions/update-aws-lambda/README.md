@@ -21,7 +21,7 @@ If this is NOT provided, the action will NOT set up AWS credentials; it is assum
 ## Example Usage
 
 ```yml
-uses: ohgod-ai/eo-actions/.github/actions/update-aws-lambda@update-aws-lambda-1.0.0
+uses: generalui/github-workflow-accelerators/.github/actions/update-aws-lambda@1.0.0-update-aws-lambda
 with:
   assume_lambda_update_role_arn: arn:aws:iam::123456789012:role/updateLambda
   function_name: my-lambda

@@ -44,7 +44,7 @@ runs:
 
     - name: Configure AWS credentials
       if: steps.should_configure_aws.outputs.configure == 'true'
-      uses: ohgod-ai/eo-actions/.github/actions/configure-aws@configure-aws-1.0.0
+      uses: generalui/github-workflow-accelerators/.github/actions/configure-aws@1.0.0-configure-aws
       with:
         aws_access_key_id: ${{ inputs.aws_access_key_id }}
         aws_secret_access_key: ${{ inputs.aws_secret_access_key }}

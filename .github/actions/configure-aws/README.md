@@ -16,7 +16,7 @@ The credentials are configured for the 'default' profile and are removed (conver
 ## Example Usage
 
 ```yml
-uses: ohgod-ai/eo-actions/.github/actions/configure-aws@configure-aws-1.0.0
+uses: generalui/github-workflow-accelerators/.github/actions/configure-aws@1.0.0-configure-aws
 with:
   aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
   aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

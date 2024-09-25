@@ -21,7 +21,7 @@ If this is NOT provided, the action will NOT set up AWS credentials; it is assum
 ## Example Usage
 
 ```yml
-uses: ohgod-ai/eo-actions/.github/actions/update-ecs@update-ecs-1.0.0
+uses: generalui/github-workflow-accelerators/.github/actions/update-ecs@1.0.0-update-ecs
 with:
   assume_ecs_access_role_arn: arn:aws:iam::123456789012:role/ecsAccessRole
   cluster: my-cluster

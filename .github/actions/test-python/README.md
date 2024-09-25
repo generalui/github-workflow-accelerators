@@ -80,7 +80,7 @@ To use the "Test Python" action in your workflow, include it as a step:
 
 ```yaml
 - name: Test Python
-  uses: ohgod-ai/eo-actions/.github/actions/test-python@test-python-1.0.0
+  uses: generalui/github-workflow-accelerators/.github/actions/test-python@1.0.0-test-python
   with:
     branch: ${{ github.ref_name }}
     global-index-url: 'http://sakura.ohgod.ai:3141/eo/stable/+simple/'
