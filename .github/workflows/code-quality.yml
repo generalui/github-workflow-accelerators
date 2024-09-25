@@ -1,0 +1,43 @@
+name: Github Action - Code Quality
+on:
+  workflow_call:
+    inputs:
+      files_ignore:
+        default: |
+            **/*.md
+        description: "Ignore changes to these file(s). NOTE: Multiline file/directory patterns should not include quotes."
+        required: false
+        type: string
+    secrets:
+      envPAT:
+        required: true
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+jobs:
+  quality:
+    name: Quality
+    # The quality pipeline should not take more that 2 minutes.
+    timeout-minutes: 2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed markdown files
+        id: changed-markdown
+        uses: tj-actions/changed-files@v41
+        with:
+          files: |
+            **/*.md
+            .github/workflows/github-action-code-quality.yml
+
+      - name: Lint all Documentation
+        if: steps.changed-markdown.outputs.any_modified == 'true'
+        uses: DavidAnson/markdownlint-cli2-action@v14
+        with:
+          globs: |
+            **/*.md
