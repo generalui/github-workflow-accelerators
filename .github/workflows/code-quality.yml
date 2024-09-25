@@ -1,16 +1,5 @@
 name: Github Action - Code Quality
 on:
-  workflow_call:
-    inputs:
-      files_ignore:
-        default: |
-            **/*.md
-        description: "Ignore changes to these file(s). NOTE: Multiline file/directory patterns should not include quotes."
-        required: false
-        type: string
-    secrets:
-      envPAT:
-        required: true
   pull_request:
     branches: [main]
     types: [opened, reopened, synchronize]
