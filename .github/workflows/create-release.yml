@@ -67,7 +67,7 @@ jobs:
           version_tags=""
           version_tags_check=""
           for module_path in "${module_paths[@]}"; do
-            version=$(cat "${module_path}"/${module}.json | jq -r '.version')
+            version=$(cat "${module_path}"/project.json | jq -r '.version')
             module=$(echo ${module_path} | cut -d'/' -f3)
             version_tags="${version_tags},\"${version}:${module}\""
             version_tags_check="${version_tags},\"${version}-${module}\""

@@ -36,7 +36,7 @@ To use the "Job Info" action in your workflow, include it as a step:
 ```yaml
 - name: Gather Job Information
   id: job_info
-  uses: generalui/github-workflow-accelerators/.github/actions/job-info@1.0.0-job-info
+  uses: generalui/github-workflow-accelerators/.github/actions/job-info@1.0.1-job-info
   with:
     default_environment: dev
 ```
