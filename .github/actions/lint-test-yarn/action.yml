@@ -3,9 +3,27 @@ name: Lint & Test
 description: Lint & Test
 
 inputs:
+  branch:
+    default: ''
+    description: The branch that is being tested. If not specified, defaults to the current branch.
+  checkout-code:
+    default: 'yes'
+    description: Whether or not to checkout the code.
   node-version:
     default: latest
     description: The version of Nodejs to use (defaults to "latest")
+  run-before-tests:
+    default: ''
+    description: A shell command to run before tests.
+  should-run-lint:
+    default: 'yes'
+    description: Whether or not to lint (defaults to "yes"). Anything other than "yes" will skip linting.
+  should-run-tests:
+    default: 'yes'
+    description: Whether or not to run tests (defaults to "yes"). Anything other than "yes" will skip tests.
+  upload-coverage:
+    default: 'no'
+    description: Whether or not to upload coverage as an artifact. Anything other than "yes" will skip uploading. Assumes that the test command is `yarn test:coverage` if true.
   yarn-version:
     default: latest
     description: The version of Yarn to use (defaults to "latest")
@@ -13,7 +31,26 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Get branch
+      if: inputs.should-run-tests == 'yes' && inputs.upload-coverage == 'yes'
+      run: |
+        branch=""
+        if [[ "${{ inputs.branch }}" == "" ]]; then
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+        else
+          branch=${{ inputs.branch }}
+        fi
+
+        echo "branch="${branch} >> $GITHUB_OUTPUT
+
+        echo "::group::Branch"
+        echo 'Branch: '${branch}
+        echo "::endgroup::"
+      shell: bash
+      id: branch
+
     - name: Checkout code
+      if: inputs.checkout-code == 'yes'
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -48,9 +85,52 @@ runs:
       shell: bash
 
     - name: Lint project
+      if: inputs.should-run-lint == 'yes'
       run: yarn lint
       shell: bash
 
+    - name: Run Before Tests
+      if: inputs.should-run-tests == 'yes' && inputs.run-before-tests != ''
+      run: |
+        bash -c "${{ inputs.run-before-tests }}"
+      shell: bash
+
     - name: Run unit tests
-      run: yarn test --passWithNoTests
+      if: inputs.should-run-tests == 'yes'
+      run: |
+        if [ "${{ inputs.upload-coverage }}" = "yes" ]; then
+          yarn test:coverage --passWithNoTests
+        else
+          yarn test --passWithNoTests
+        fi
+      shell: bash
+
+    - name: Get the coverage file.
+      if: inputs.should-run-tests == 'yes' && inputs.upload-coverage == 'yes'
+      run: |
+          coverage_branch=${${{ steps.branch.outputs.branch }}//+([\"\:<>|\*\?\\\/])/-}
+          coverage_dir=coverage-${coverage_branch}
+          mkdir -p ${coverage_dir} && sudo cp -r coverage ${coverage_dir}
+
+          echo "coverage_branch=${coverage_branch}" >> $GITHUB_OUTPUT
+          echo "coverage_dir=${coverage_dir}" >> $GITHUB_OUTPUT
+
+          echo "::group::Coverage Data"
+          echo 'branch: '${coverage_branch}
+          echo 'dir: '${coverage_dir}
+          echo "::endgroup::"
+      shell: bash
+      id: coverage
+
+    - name: Upload the Coverage as an artifact
+      if: inputs.should-run-tests == 'yes' && inputs.upload-coverage == 'yes'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.coverage.outputs.coverage_branch }}-test-coverage
+        path: ${{ steps.coverage.outputs.coverage_dir }}
+        retention-days: ${{ inputs.retention-days }}
+
+    - name: Default Job Success
+      if: inputs.should-run-tests != 'yes' && inputs.should-run-lint != 'yes'
+      run: exit 0
       shell: bash
