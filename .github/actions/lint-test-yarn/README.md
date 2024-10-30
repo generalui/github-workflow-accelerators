@@ -67,7 +67,7 @@ To use the "Lint & Test" action in your workflow, include it as a step:
 ## Workflow Steps
 
 1) Get Branch:
-  - If `branch` is not specified, defaults to the current branch.
+    - If `branch` is not specified, defaults to the current branch.
 
 1) Checkout Code:
     - Checks out your code from the repository to ensure the latest version is used for linting and testing.
