@@ -20,3 +20,9 @@ This repo hold various accelerators for Github workflows (Actions) as well as re
 - [Update AWS ECS](./.github/actions/update-aws-ecs/README.md)
 - [Update AWS Lambda](./.github/actions/update-aws-lambda/README.md)
 - [Validate Terraform](./.github/actions/validate-terraform/README.md)
+
+## Contributing
+
+### Linting and Formatting
+
+See [LINTING.md](./LINTING.md) for more information.
