@@ -107,7 +107,11 @@ runs:
           # Run test coverage using as many cores as are available.
           tox run -e coverage-py${major_minor}
         else
-          pytest --cov --cov-report html -n auto ${{ inputs.min-coverage > 0 && "--cov-fail-under=${{ inputs.min-coverage }}" }}
+          coverage_arg=""
+          if [ ${{ inputs.min-coverage }} -gt 0 ]; then
+            coverage_arg="--cov-fail-under=${{ inputs.min-coverage }}"
+          fi
+          pytest --cov --cov-report html -n auto $coverage_arg
         fi
       shell: bash
 
