@@ -9,12 +9,18 @@ inputs:
   checkout-code:
     default: 'yes'
     description: Whether or not to checkout the code.
+  coverage-prefix:
+    default: ''
+    description: A prefix to use for the coverage artifact to help avoid collisions with other coverage artifacts in the same job.
   global-index-url:
     default: ''
     description: The base URL of the Python Package Index (default https://pypi.org/simple). This should point to a repository compliant with PEP 503 (the simple repository API) or a local directory laid out in the same format. If none is passed, the index URL will not be updated.
   global-trusted-host:
     default: ''
     description: The host of the global trusted host to use for PIP. This will mark this host or host:port pair as trusted, even though it does not have valid or any HTTPS. If none is passed, the trusted host will not be updated.
+  min-coverage:
+    default: 0
+    description: The minimum coverage to require for testing to pass.
   python-version:
     default: 3.11.7
     description: The version of Python to use (defaults to 3.11.7)
@@ -101,7 +107,7 @@ runs:
           # Run test coverage using as many cores as are available.
           tox run -e coverage-py${major_minor}
         else
-          pytest --cov --cov-report html -n auto
+          pytest --cov --cov-report html -n auto ${{ inputs.min-coverage > 0 && "--cov-fail-under=${{ inputs.min-coverage }}" }}
         fi
       shell: bash
 
@@ -109,14 +115,17 @@ runs:
       if: inputs.should-run-tests == 'yes' && inputs.upload-coverage == 'yes'
       run: |
           coverage_branch=${${{ inputs.branch }}//+([\"\:<>|\*\?\\\/])/-}
-          coverage_dir=coverage-${coverage_branch}
+          coverage_prefix=${{ inputs.coverage-prefix != '' && "${{ inputs.coverage-prefix }}-" }}
+          coverage_dir=${coverage_prefix}coverage-${coverage_branch}
           mkdir -p ${coverage_dir} && sudo cp -r coverage ${coverage_dir}
 
           echo "coverage_branch=${coverage_branch}" >> $GITHUB_OUTPUT
+          echo "coverage_prefix=${coverage_prefix}" >> $GITHUB_OUTPUT
           echo "coverage_dir=${coverage_dir}" >> $GITHUB_OUTPUT
 
           echo "::group::Coverage Data"
           echo 'branch: '${coverage_branch}
+          echo 'prefix: '${coverage_prefix}
           echo 'dir: '${coverage_dir}
           echo "::endgroup::"
       shell: bash
@@ -126,7 +135,7 @@ runs:
       if: inputs.should-run-tests == 'yes' && inputs.upload-coverage == 'yes'
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.coverage.outputs.coverage_branch }}-test-coverage
+        name: ${{ steps.coverage.outputs.coverage_prefix }}${{ steps.coverage.outputs.coverage_branch }}-test-coverage
         path: ${{ steps.coverage.outputs.coverage_dir }}
         retention-days: ${{ inputs.retention-days }}
 
