@@ -26,6 +26,12 @@ The action accepts the following input:
 - `checkout-code`:
   - __Description__: Whether or not to checkout the code.
   - __Default__: 'yes'
+  - __Required__: No
+
+- `coverage-prefix`:
+  - __Description__: A prefix to use for the coverage artifact to help avoid collisions with other coverage artifacts in the same job.
+  - __Default__: ''
+  - __Required__: No
 
 - `global-index-url`:
   - __Description__: The base URL of the Python Package Index (default <https://pypi.org/simple>).
@@ -41,18 +47,23 @@ The action accepts the following input:
 
 - `python-version`:
   - __Description__: The version of Python to use. Defaults to a specific version if not specified.
-  - __Required__: No
   - __Default__: '3.11.7'
+  - __Required__: No
+
+- `min-coverage`:
+  - __Description__: The minimum coverage to require for testing to pass.
+  - __Default__: 0
+  - __Required__: No
 
 - `retention-days`:
   - __Description__: The number of days to keep artifacts.
-  - __Required__: No
   - __Default__: 31
+  - __Required__: No
 
 - `run-before-tests`:
   - __Description__: A shell command to run before tests.
-  - __Required__: No
   - __Default__: ''
+  - __Required__: No
 
 - `search-index`:
   - __Description__: The search index to use for PIP.
@@ -62,8 +73,8 @@ The action accepts the following input:
 
 - `should-run-tests`:
   - __Description__: Whether or not to run tests. Set this to anything other than "yes" to skip tests.
-  - __Required__: No
   - __Default__: 'yes'
+  - __Required__: No
 
 - `tox-version`:
   - __Description__: The version of Tox to use for testing. If not specified, `tox` will not be used and `pytest` will be called directly.
@@ -71,8 +82,8 @@ The action accepts the following input:
 
 - `upload-coverage`:
   - __Description__: Whether or not to upload coverage as an artifact. Set this to anything other than "yes" to skip uploading.
-  - __Required__: No
   - __Default__: 'yes'
+  - __Required__: No
 
 ## Usage
 
@@ -83,11 +94,13 @@ To use the "Test Python" action in your workflow, include it as a step:
   uses: generalui/github-workflow-accelerators/.github/actions/test-python@1.0.0-test-python
   with:
     branch: ${{ github.ref_name }}
-    global-index-url: 'http://sakura.ohgod.ai:3141/eo/stable/+simple/'
-    global-trusted-host: 'sakura.ohgod.ai'
+    coverage-prefix: ${{ github.run_id }}
+    global-index-url: 'http://mypydevhost.com:3210/stable/+simple/'
+    global-trusted-host: 'mypydevhost.com'
+    min-coverage: 80
     python-version: '3.11.7'
     run-before-tests: 'echo "Hello World"'
-    search-index: 'http://sakura.ohgod.ai:3141/eo/stable'
+    search-index: 'http://mypydevhost.com:3210/stable'
     should-run-tests: 'yes'
     tox-version: '4.12.1'
     upload-coverage: 'yes'
@@ -108,6 +121,7 @@ To use the "Test Python" action in your workflow, include it as a step:
 1) __Install Dependencies__:
     - If tests are to be run this installs the specified version of `tox`.
     If the `tox` version is NOT provided, it installs the test and app dependencies directly.
+    If the `requirements-dev.txt` file does not exist, it will use the `requirements-test.txt` file instead.
 
 1) __Run Before Tests__:
     - Runs the specified shell command before tests.
@@ -116,7 +130,7 @@ To use the "Test Python" action in your workflow, include it as a step:
 1) __Test__:
     - If tests are to be run this runs tests using `tox` (if the `tox` version is provided).
     Otherwise it runs tests using `pytest`.
-    Once tests are complete, it uploads the coverage report.
+    If the `min-coverage` input is greater than 0, it will fail the tests if the coverage is less than the specified minimum.
 
 1) __Get the coverage file__:
     - Copies the coverage information to a folder named after the branch, if tests are to be run and coverage is to be uploaded.
@@ -131,6 +145,7 @@ To use the "Test Python" action in your workflow, include it as a step:
 
 - Ensure that the Python version specified is compatible with your project.
 - If using `tox`, ensure the version specified is compatible with your project.
+- The action is opinionated and expects the test dependencies to be in a `requirements-dev.txt` or `requirement-test.txt` file.
 - The action is customizable to skip tests or coverage uploading by adjusting the `should-run-tests` and `upload-coverage` inputs respectively.
 - Coverage reports are retained as artifacts for historical comparison and analysis.
 
