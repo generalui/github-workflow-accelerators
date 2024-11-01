@@ -122,7 +122,8 @@ runs:
           if [ ${{ inputs.coverage-prefix }} != '' ]; then
             coverage_prefix=${{ inputs.coverage-prefix }}-
           fi
-          coverage_branch=${${{ inputs.branch }}//+([\"\:<>|\*\?\\\/])/-}
+          branch=${{ inputs.branch }}
+          coverage_branch=${$branch//[\":<>|*?\\\/]/-}
           coverage_dir=${coverage_prefix}coverage-${coverage_branch}
           mkdir -p ${coverage_dir} && sudo cp -r coverage ${coverage_dir}
 
