@@ -108,7 +108,8 @@ runs:
     - name: Get the coverage file.
       if: inputs.should-run-tests == 'yes' && inputs.upload-coverage == 'yes'
       run: |
-          coverage_branch=${${{ steps.branch.outputs.branch }}//[\":<>|*?\\\/]/-}
+          branch=${{ steps.branch.outputs.branch }}
+          coverage_branch=${branch//[\":<>|*?\\\/]/-}
           coverage_dir=coverage-${coverage_branch}
           mkdir -p ${coverage_dir} && sudo cp -r coverage ${coverage_dir}
 
