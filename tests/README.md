@@ -8,7 +8,7 @@ Tests are written using [bats-core](https://github.com/bats-core/bats-core) — 
 
 ## Structure
 
-```
+```text
 tests/
 ├── unit/
 │   ├── options_helpers.bats      # Tests for the shared options_helpers.sh utility
@@ -34,8 +34,10 @@ tests/
 
 ### What Is NOT Tested Here
 
-- **Composite action YAML** — action `.yml` files use GitHub Actions expression syntax (`${{ inputs.xxx }}`) that cannot run outside of a GitHub Actions runner. Use the integration test workflow (`.github/workflows/test-shell-scripts.yml`) for those.
-- **Live AWS calls** — tests that require actual AWS credentials are integration tests and must run in a real CI environment with OIDC or stored secrets.
+- **Composite action YAML** — action `.yml` files use GitHub Actions expression syntax
+  (`${{ inputs.xxx }}`) that cannot run outside of a GitHub Actions runner.
+- **Live AWS calls** — tests that require actual AWS credentials are integration tests
+  and must run in a real CI environment with OIDC or stored secrets.
 
 ## Running Locally
 
