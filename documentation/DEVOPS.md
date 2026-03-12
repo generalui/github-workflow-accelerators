@@ -29,6 +29,6 @@ The `main` branch is protected:
 
 ## Dependency Management
 
-Actions in this repo reference specific versions of external GitHub Actions (e.g. `actions/checkout@v6`).
+Actions in this repo reference specific versions of external GitHub Actions (e.g. `actions/checkout`).
 When new versions are released — particularly those resolving runtime deprecation warnings — the `action.yml`
 files and corresponding `project.json` versions should be updated. See [UPDATING_AN_ACTION.md](./UPDATING_AN_ACTION.md).

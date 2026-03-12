@@ -27,34 +27,15 @@ mkdir -p .github/actions/my-new-action/scripts
 
 ### 2. Create `action.yml`
 
-Define the action as a composite action. All actions in this repo use `using: composite`.
+Refer to the [GitHub documentation on creating actions](https://docs.github.com/en/actions/sharing-automations/creating-actions)
+for the full `action.yml` syntax. Any action type is supported.
 
-```yaml
-name: My New Action
+Two conventions specific to this repo:
 
-description: A brief description of what this action does.
-
-inputs:
-  my_input:
-    description: Description of the input.
-    required: true
-
-runs:
-  using: composite
-  steps:
-    - name: Run script
-      env:
-        MY_INPUT: ${{ inputs.my_input }}
-      run: ${{ github.action_path }}/scripts/my_script.sh
-      shell: bash
-```
-
-Key conventions:
-
-- Pass inputs to shell scripts via environment variables, not positional arguments
-- Use `${{ github.action_path }}` to reference scripts relative to the action
 - Reference internal actions (e.g. `configure-aws`) by pinning to a release tag:
   `uses: generalui/github-workflow-accelerators/.github/actions/configure-aws@{tag}`
+- When invoking shell scripts, pass inputs via environment variables rather than
+  positional arguments — it keeps the script interface explicit and testable
 
 ### 3. Create `project.json`
 
