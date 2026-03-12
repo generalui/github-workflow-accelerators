@@ -25,4 +25,8 @@ This repo hold various accelerators for Github workflows (Actions) as well as re
 
 ### Linting and Formatting
 
-See [LINTING.md](./LINTING.md) for more information.
+See [documentation/LINTING.md](./documentation/LINTING.md) for more information.
+
+### Testing
+
+See [documentation/TESTING.md](./documentation/TESTING.md) for more information.
