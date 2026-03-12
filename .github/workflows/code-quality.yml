@@ -1,14 +1,16 @@
-name: Github Action - Code Quality
+name: Code Quality
+
 on:
   pull_request:
     branches: [main]
     types: [opened, reopened, synchronize]
   workflow_dispatch:
+
 jobs:
   quality:
     name: Quality
-    # The quality pipeline should not take more that 2 minutes.
-    timeout-minutes: 2
+    # The quality pipeline should not take more than 10 minutes.
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -18,15 +20,51 @@ jobs:
 
       - name: Get changed markdown files
         id: changed-markdown
-        uses: tj-actions/changed-files@v41
+        uses: tj-actions/changed-files@v45
         with:
           files: |
             **/*.md
-            .github/workflows/github-action-code-quality.yml
+            .github/workflows/code-quality.yml
 
-      - name: Lint all Documentation
+      - name: Get changed action and test paths
+        id: changed-actions
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            .github/actions/**
+            tests/**
+
+      - name: Lint all documentation
         if: steps.changed-markdown.outputs.any_modified == 'true'
         uses: DavidAnson/markdownlint-cli2-action@v14
         with:
           globs: |
             **/*.md
+
+      - name: Install bats
+        if: steps.changed-actions.outputs.any_changed == 'true'
+        run: sudo npm install -g bats
+
+      - name: Test - promote-ecr-image
+        if: >
+          contains(steps.changed-actions.outputs.all_changed_files, '.github/actions/promote-ecr-image') ||
+          contains(steps.changed-actions.outputs.all_changed_files, 'tests/unit/promote-ecr-image')
+        run: bats --verbose-run tests/unit/promote-ecr-image/
+
+      - name: Test - test-python
+        if: >
+          contains(steps.changed-actions.outputs.all_changed_files, '.github/actions/test-python') ||
+          contains(steps.changed-actions.outputs.all_changed_files, 'tests/unit/test-python')
+        run: bats --verbose-run tests/unit/test-python/
+
+      - name: Test - update-aws-ecs
+        if: >
+          contains(steps.changed-actions.outputs.all_changed_files, '.github/actions/update-aws-ecs') ||
+          contains(steps.changed-actions.outputs.all_changed_files, 'tests/unit/update-aws-ecs')
+        run: bats --verbose-run tests/unit/update-aws-ecs/
+
+      - name: Test - update-aws-lambda
+        if: >
+          contains(steps.changed-actions.outputs.all_changed_files, '.github/actions/update-aws-lambda') ||
+          contains(steps.changed-actions.outputs.all_changed_files, 'tests/unit/update-aws-lambda')
+        run: bats --verbose-run tests/unit/update-aws-lambda/
