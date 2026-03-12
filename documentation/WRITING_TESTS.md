@@ -5,7 +5,9 @@ For running existing tests locally, see [TESTING.md](./TESTING.md).
 
 ## What to Test
 
-Tests cover the **shell scripts** inside each action's `scripts/` directory. Composite action `action.yml` files use GitHub Actions expression syntax (`${{ inputs.xxx }}`) that cannot run outside a real runner and are therefore out of scope for unit tests.
+Tests cover the **shell scripts** inside each action's `scripts/` directory. Composite action
+`action.yml` files use GitHub Actions expression syntax (`${{ inputs.xxx }}`) that cannot run
+outside a real runner and are therefore out of scope for unit tests.
 
 Good candidates for testing:
 

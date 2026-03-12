@@ -13,7 +13,7 @@ See [LINTING.md](./LINTING.md) and [TESTING.md](./TESTING.md) for setup details.
 ## Guides
 
 | Task | Document |
-|------|----------|
+| ------ | ---------- |
 | Add a new action | [ADDING_AN_ACTION.md](./ADDING_AN_ACTION.md) |
 | Modify an existing action | [UPDATING_AN_ACTION.md](./UPDATING_AN_ACTION.md) |
 | Write tests for shell scripts | [WRITING_TESTS.md](./WRITING_TESTS.md) |

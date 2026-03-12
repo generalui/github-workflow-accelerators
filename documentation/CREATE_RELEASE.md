@@ -13,7 +13,7 @@ The `create-release.yml` workflow automatically creates versioned git tags and G
 
 Tags follow the format `{version}-{action-name}`:
 
-```
+```text
 1.0.1-update-aws-ecs
 1.2.0-lint-test-yarn
 ```
@@ -26,8 +26,9 @@ A push to `main` triggers a release for any action whose files changed **and** w
 
 If the version has not been bumped, the workflow fails with:
 
-```
-The tag {version}-{action-name} already exists, ensure you have incremented the version in project.json.
+```text
+The tag {version}-{action-name} already exists,
+ensure you have incremented the version in project.json.
 ```
 
 Always bump `project.json` before merging. See [UPDATING_AN_ACTION.md](./UPDATING_AN_ACTION.md).
@@ -37,7 +38,7 @@ Always bump `project.json` before merging. See [UPDATING_AN_ACTION.md](./UPDATIN
 The following paths are excluded from change detection:
 
 | Path | Reason |
-|------|--------|
+| ------ | -------- |
 | `.github/workflows/create-release.yml` | Self-referential |
 | `.github/workflows/code-quality.yml` | Workflow-only change |
 | `.github/**/*.md` | Workflow documentation |

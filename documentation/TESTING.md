@@ -31,7 +31,7 @@ tests/
 ## What Is Tested
 
 | Action | Script | Tests | What's covered |
-|--------|--------|-------|----------------|
+| -------- | -------- | ------- | ---------------- |
 | `promote-ecr-image` | `options_helpers.sh` | 15 | `has_argument()` and `extract_argument()` parsing logic |
 | `promote-ecr-image` | `aws_unset.sh` | 7 | All 4 AWS credential env vars are cleared; no-op when already unset |
 | `promote-ecr-image` | `promote_image.sh` | 13 | Every required env var validation (exits 1 for each missing var); `--help` |

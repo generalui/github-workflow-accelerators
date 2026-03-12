@@ -7,7 +7,7 @@ This document covers the CI/CD infrastructure for this repository.
 All workflows are defined in `.github/workflows/`.
 
 | Workflow | Trigger | Purpose |
-|----------|---------|---------|
+| ---------- | --------- | --------- |
 | [`code-quality.yml`](./../.github/workflows/code-quality.yml) | PR to `main` | Linting and unit tests |
 | [`create-release.yml`](./../.github/workflows/create-release.yml) | Push to `main` | Version tagging and GitHub Releases |
 

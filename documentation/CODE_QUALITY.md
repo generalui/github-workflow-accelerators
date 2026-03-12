@@ -16,7 +16,7 @@ Only the steps relevant to the PR's changes are executed, keeping runner time mi
 ## Triggering Conditions
 
 | Step | Triggers when... |
-|------|-----------------|
+| ------ | ----------------- |
 | Lint Markdown | Any `**/*.md` file or `code-quality.yml` itself changed |
 | bats tests | Files changed in `.github/actions/{action-name}/` or `tests/unit/{action-name}/` |
 

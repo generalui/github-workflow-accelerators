@@ -1,13 +1,15 @@
 # Updating an Action
 
-Every change to an action's files **requires a `project.json` version bump**. This is not optional — the release workflow reads `project.json` on every push to `main` and will fail with a "tag already exists" error if the version has not been incremented.
+Every change to an action's files **requires a `project.json` version bump**. This is not optional —
+the release workflow reads `project.json` on every push to `main` and will fail with a
+"tag already exists" error if the version has not been incremented.
 
 ## Versioning Rules
 
 This repository follows [Semantic Versioning](https://semver.org/):
 
 | Change type | Version bump | Example |
-|-------------|-------------|---------|
+| ------------- | ------------- | --------- |
 | Bug fix, dependency update, refactor, documentation | **Patch** | `1.0.0` → `1.0.1` |
 | New optional input, backwards-compatible enhancement | **Minor** | `1.0.0` → `1.1.0` |
 | Removed input, changed input name, changed behaviour | **Major** | `1.0.0` → `2.0.0` |
