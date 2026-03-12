@@ -8,7 +8,7 @@
 # arguments based on which environment variables are set.
 # =============================================================================
 
-REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../../.." && pwd)"
 CONFIGURE_PIP_SCRIPT="$REPO_ROOT/.github/actions/test-python/scripts/configure_pip.sh"
 
 # ---------------------------------------------------------------------------

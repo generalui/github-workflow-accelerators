@@ -1,15 +1,19 @@
-name: Github Action - Code Quality
+name: Code Quality
+
 on:
   pull_request:
     branches: [main]
     types: [opened, reopened, synchronize]
   workflow_dispatch:
+
 jobs:
-  quality:
-    name: Quality
-    # The quality pipeline should not take more that 2 minutes.
-    timeout-minutes: 2
+  detect-changes:
+    name: Detect changes
     runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      markdown-changed: ${{ steps.changed-markdown.outputs.any_modified }}
+      test-matrix: ${{ steps.build-matrix.outputs.matrix }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -18,15 +22,87 @@ jobs:
 
       - name: Get changed markdown files
         id: changed-markdown
-        uses: tj-actions/changed-files@v41
+        uses: tj-actions/changed-files@v45
         with:
           files: |
             **/*.md
-            .github/workflows/github-action-code-quality.yml
+            .github/workflows/code-quality.yml
 
-      - name: Lint all Documentation
-        if: steps.changed-markdown.outputs.any_modified == 'true'
+      - name: Get changed action and test paths
+        id: changed-paths
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            .github/actions/**
+            tests/**
+
+      - name: Build bats test matrix
+        id: build-matrix
+        env:
+          CHANGED_FILES: ${{ steps.changed-paths.outputs.all_changed_files }}
+        run: |
+          # Actions that have bats unit tests in tests/unit/<action-name>/
+          actions_with_tests=(
+            "promote-ecr-image"
+            "test-python"
+            "update-aws-ecs"
+            "update-aws-lambda"
+          )
+
+          matrix=()
+          for action in "${actions_with_tests[@]}"; do
+            if echo "$CHANGED_FILES" | grep -qE "(\.github/actions/${action}/|tests/unit/${action}/)"; then
+              matrix+=("$action")
+            fi
+          done
+
+          if [ ${#matrix[@]} -eq 0 ]; then
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+          else
+            matrix_json=$(jq -c -n '$ARGS.positional' --args "${matrix[@]}")
+            echo "matrix=${matrix_json}" >> "$GITHUB_OUTPUT"
+          fi
+
+  lint-markdown:
+    name: Lint Markdown
+    needs: detect-changes
+    if: needs.detect-changes.outputs.markdown-changed == 'true'
+    # Linting should not take more than 2 minutes.
+    timeout-minutes: 2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lint all documentation
         uses: DavidAnson/markdownlint-cli2-action@v14
         with:
           globs: |
             **/*.md
+
+  bats-tests:
+    name: Test - ${{ matrix.action }}
+    needs: detect-changes
+    if: >
+      needs.detect-changes.outputs.test-matrix != '[]' &&
+      needs.detect-changes.outputs.test-matrix != ''
+    # Each action test suite should not take more than 5 minutes.
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        action: ${{ fromJSON(needs.detect-changes.outputs.test-matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install bats
+        run: sudo npm install -g bats
+
+      - name: Run unit tests for ${{ matrix.action }}
+        run: bats --verbose-run tests/unit/${{ matrix.action }}/
+
+      - name: Summarise results
+        if: always()
+        run: echo "Unit tests complete for ${{ matrix.action }}."

@@ -7,7 +7,7 @@
 # We test the promote-ecr-image version as the canonical copy.
 # =============================================================================
 
-REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../../.." && pwd)"
 AWS_UNSET_SCRIPT="$REPO_ROOT/.github/actions/promote-ecr-image/scripts/general/aws_unset.sh"
 
 # ---------------------------------------------------------------------------

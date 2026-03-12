@@ -13,7 +13,7 @@
 # PATH inside the subshell, as that breaks system tools like dirname.
 # =============================================================================
 
-REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../../.." && pwd)"
 UPDATE_ECS_SCRIPT="$REPO_ROOT/.github/actions/update-aws-ecs/scripts/update_ecs.sh"
 
 setup() {

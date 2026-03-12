@@ -8,29 +8,36 @@ Tests are written using [bats-core](https://github.com/bats-core/bats-core) — 
 
 ## Structure
 
+Tests are organised per-action, mirroring the mono-repo structure of the actions themselves.
+Each action that contains testable shell scripts has a corresponding directory under `tests/unit/`.
+
 ```text
 tests/
 ├── unit/
-│   ├── options_helpers.bats      # Tests for the shared options_helpers.sh utility
-│   ├── aws_unset.bats            # Tests for the shared aws_unset.sh utility
-│   ├── configure_pip.bats        # Tests for test-python/scripts/configure_pip.sh
-│   ├── promote_image.bats        # Tests for promote-ecr-image/scripts/promote_image.sh
-│   ├── update_ecs.bats           # Tests for update-aws-ecs/scripts/update_ecs.sh
-│   └── update_lambda.bats        # Tests for update-aws-lambda/scripts/update_lambda.sh
+│   ├── promote-ecr-image/
+│   │   ├── test_aws_unset.bats        # Tests for the shared aws_unset.sh utility
+│   │   ├── test_options_helpers.bats  # Tests for the shared options_helpers.sh utility
+│   │   └── test_promote_image.bats    # Tests for promote_image.sh
+│   ├── test-python/
+│   │   └── test_configure_pip.bats    # Tests for configure_pip.sh
+│   ├── update-aws-ecs/
+│   │   └── test_update_ecs.bats       # Tests for update_ecs.sh
+│   └── update-aws-lambda/
+│       └── test_update_lambda.bats    # Tests for update_lambda.sh
 └── helpers/
-    └── mock_helpers.bash         # Shared mock creation and assertion utilities
+    └── mock_helpers.bash              # Shared mock creation and assertion utilities
 ```
 
 ## What Is Tested
 
-| Script | Tests | What's covered |
-|--------|-------|----------------|
-| `options_helpers.sh` | 15 | `has_argument()` and `extract_argument()` parsing logic |
-| `aws_unset.sh` | 7 | All 4 AWS credential env vars are cleared; no-op when already unset |
-| `configure_pip.sh` | 10 | Correct `pip config set` calls per env var; no-op when unset; `--help` |
-| `promote_image.sh` | 13 | Every required env var validation (exits 1 for each missing var); `--help` |
-| `update_ecs.sh` | 8 | `--help`, `aws ecs update-service` invocation, `--force-new-deployment`, failure path |
-| `update_lambda.sh` | 7 | `--help`, `aws lambda update-function-code` invocation, failure path |
+| Action | Script | Tests | What's covered |
+|--------|--------|-------|----------------|
+| `promote-ecr-image` | `options_helpers.sh` | 15 | `has_argument()` and `extract_argument()` parsing logic |
+| `promote-ecr-image` | `aws_unset.sh` | 7 | All 4 AWS credential env vars are cleared; no-op when already unset |
+| `promote-ecr-image` | `promote_image.sh` | 13 | Every required env var validation (exits 1 for each missing var); `--help` |
+| `test-python` | `configure_pip.sh` | 10 | Correct `pip config set` calls per env var; no-op when unset; `--help` |
+| `update-aws-ecs` | `update_ecs.sh` | 8 | `--help`, `aws ecs update-service` invocation, `--force-new-deployment`, failure path |
+| `update-aws-lambda` | `update_lambda.sh` | 7 | `--help`, `aws lambda update-function-code` invocation, failure path |
 
 ### What Is NOT Tested Here
 
@@ -60,33 +67,35 @@ npm install -g bats
 brew install bats-core
 ```
 
-### Run all tests
+### Run all tests for a specific action
 
 ```sh
-bats tests/unit/
+bats tests/unit/update-aws-ecs/
 ```
 
-### Run a single test file
+### Run tests for all actions
 
 ```sh
-bats tests/unit/options_helpers.bats
+for dir in tests/unit/*/; do bats --verbose-run "$dir"; done
 ```
 
 ### Run with verbose output
 
 ```sh
-bats --verbose-run tests/unit/
+bats --verbose-run tests/unit/promote-ecr-image/
 ```
 
 ## CI
 
-The workflow `.github/workflows/test-shell-scripts.yml` runs the full suite automatically
-on every push or pull request that touches `tests/` or any `.sh` file under `.github/actions/`.
+The `code-quality.yml` workflow runs automatically on every PR to `main`.
+It uses `tj-actions/changed-files` to detect which action directories have changed
+and runs tests only for those actions — each in its own isolated job.
 
 ## Writing New Tests
 
-1. Create `tests/unit/<script_name>.bats`.
-2. Set `REPO_ROOT` using `BATS_TEST_DIRNAME` so paths are always absolute.
+1. Create `tests/unit/<action-name>/test_<script_name>.bats`.
+2. Set `REPO_ROOT` relative to `BATS_TEST_DIRNAME` — tests are three levels deep,
+   so use: `REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../../.." && pwd)"`
 3. In `setup()`, create a `MOCK_DIR`, add mocks for any external commands, and prepend
    `$MOCK_DIR` to `PATH` — subshells spawned by `run bash -c "..."` inherit the PATH
    automatically, so do not re-export `PATH` inside the subshell.

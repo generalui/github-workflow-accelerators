@@ -13,7 +13,7 @@
 # PATH inside the subshell, as that breaks system tools like dirname.
 # =============================================================================
 
-REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../../.." && pwd)"
 UPDATE_LAMBDA_SCRIPT="$REPO_ROOT/.github/actions/update-aws-lambda/scripts/update_lambda.sh"
 
 setup() {

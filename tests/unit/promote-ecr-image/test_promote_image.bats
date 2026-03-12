@@ -8,7 +8,7 @@
 # tests; those are NOT covered here.
 # =============================================================================
 
-REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../../.." && pwd)"
 PROMOTE_IMAGE_SCRIPT="$REPO_ROOT/.github/actions/promote-ecr-image/scripts/promote_image.sh"
 
 # ---------------------------------------------------------------------------

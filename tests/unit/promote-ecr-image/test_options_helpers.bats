@@ -11,7 +11,7 @@
 # All three copies are functionally identical; we test one authoritative copy.
 # =============================================================================
 
-REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../../.." && pwd)"
 HELPERS_SCRIPT="$REPO_ROOT/.github/actions/promote-ecr-image/scripts/general/options_helpers.sh"
 
 setup() {
