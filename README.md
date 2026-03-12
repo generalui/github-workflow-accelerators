@@ -23,6 +23,9 @@ This repo hold various accelerators for Github workflows (Actions) as well as re
 
 ## Contributing
 
+See [documentation/CONTRIBUTING.md](./documentation/CONTRIBUTING.md) for the full contributor guide, including
+how to add or update actions, write tests, and understand the CI/CD workflows.
+
 ### Linting and Formatting
 
 See [documentation/LINTING.md](./documentation/LINTING.md) for more information.
