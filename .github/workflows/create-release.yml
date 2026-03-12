@@ -31,6 +31,8 @@ jobs:
             .markdownlint*
             *.code-workspace
             *.md
+            documentation/**
+            tests/**
 
       - name: Get changed Action and Workflow paths
         if: steps.changed-files.outputs.any_changed == 'true'
