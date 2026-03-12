@@ -31,7 +31,7 @@ tests/
 ## What Is Tested
 
 | Action | Script | Tests | What's covered |
-|--------|--------|-------|----------------|
+| -------- | -------- | ------- | ---------------- |
 | `promote-ecr-image` | `options_helpers.sh` | 15 | `has_argument()` and `extract_argument()` parsing logic |
 | `promote-ecr-image` | `aws_unset.sh` | 7 | All 4 AWS credential env vars are cleared; no-op when already unset |
 | `promote-ecr-image` | `promote_image.sh` | 13 | Every required env var validation (exits 1 for each missing var); `--help` |
@@ -92,6 +92,11 @@ It uses `tj-actions/changed-files` to detect which action directories have chang
 and runs tests only for those actions — each in its own isolated job.
 
 ## Writing New Tests
+
+For a full guide on writing new tests — including the mock pattern, exit code testing, and how to register
+a new action with CI — see [WRITING_TESTS.md](./WRITING_TESTS.md).
+
+Quick reference:
 
 1. Create `tests/unit/<action-name>/test_<script_name>.bats`.
 2. Set `REPO_ROOT` relative to `BATS_TEST_DIRNAME` — tests are three levels deep,
